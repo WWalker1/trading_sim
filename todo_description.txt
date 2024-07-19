@@ -1,0 +1,20 @@
+TODO List:
+1. Implement save/load game functionality
+2. Add more technologies to the research tree
+3. Create an AI opponent for single-player mode
+4. Improve the GUI with better visuals and more intuitive controls
+5. Add more diverse and impactful economic events
+6. Implement a trading system between players
+7. Create a tutorial or help system for new players
+8. Add sound effects and background music
+9. Implement different victory conditions (e.g., first to reach a certain net worth)
+10. Create a config file for easy game balancing and modding
+11. Write unit tests for core game logic
+12. Optimize performance for larger-scale games
+13. Add localization support for multiple languages
+
+
+Based on the readme, todo list, and full code file for this economics game, I'd like you to identify some logic or game design errors with the current code. Specifically, look for unclear mechanics in the game and try to make them easier to understand an use. 
+
+When you make your changes, reproduce the entire code file. This is very important. At the end of each of your responses, highlight the next couple of things you think would be smart to change and continue developing
+
