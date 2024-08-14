@@ -1,0 +1,14 @@
+# Screen dimensions
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+FONT_SIZE = 20
+
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GRAY = (200, 200, 200)
+LIGHT_BLUE = (173, 216, 230)
+
+# Game constants
+MAX_TURNS = 10
+ACTIONS_PER_TURN = 3

@@ -1,20 +1,61 @@
-TODO List:
-1. Implement save/load game functionality
-2. Add more technologies to the research tree
-3. Create an AI opponent for single-player mode
-4. Improve the GUI with better visuals and more intuitive controls
-5. Add more diverse and impactful economic events
-6. Implement a trading system between players
-7. Create a tutorial or help system for new players
-8. Add sound effects and background music
-9. Implement different victory conditions (e.g., first to reach a certain net worth)
-10. Create a config file for easy game balancing and modding
-11. Write unit tests for core game logic
-12. Optimize performance for larger-scale games
-13. Add localization support for multiple languages
+Economic Conquest: A Competitive Economic Simulation
 
+Political Machine - [ cheaper briberies, more owned politicians, virtually immune to political attacks, virtually no merger or acquisition barring, has control over the police in areas, starts with fewer and smaller factories, starts with less money but more political power points]  ||  Technologist - [ start with more efficient and bigger factories, lower variable costs, less labor needs, start with more technology, cheaper research costs, starts with no political power, no market power]  ||  Monopolist - [starts with a near monopoly in one type of product, much more market power, can force firms to sell, starts with big factories, can pay workers low wages]    
 
-Based on the readme, todo list, and full code file for this economics game, I'd like you to identify some logic or game design errors with the current code. Specifically, look for unclear mechanics in the game and try to make them easier to understand an use. 
+Game Overview:
+Economic Conquest is a turn-based economic strategy game where players compete for global dominance through the interplay of production, politics, and the market. The core gameplay revolves around managing factories, researching new technologies, and navigating the political landscape to gain advantages over opponents.
 
-When you make your changes, reproduce the entire code file. This is very important. At the end of each of your responses, highlight the next couple of things you think would be smart to change and continue developing
+Core Pillars:
+1. Production
+   - Factories produce goods
+   - Resource management
+   - Supply chains
+   - Efficiency research
 
+2. Politics
+   - Political influence
+   - Bribery and corruption
+   - Regulations and policies
+   - Scandals and crises
+
+3. Market
+   - Pricing dynamics
+   - Demand fluctuations
+   - Player competition
+   - Economic cycles
+
+Key Classes:
+- Player
+  - Factories
+  - Research tree
+  - Political influence
+
+- Factory
+  - Production capacity
+  - Costs
+  - Product types
+
+- Market
+  - Pricing
+  - Demand
+  - Competition
+
+- Politics
+  - Regulations
+  - Scandals
+  - Bribery
+
+Implementation:
+- Modular architecture
+- Pygame for UI
+- Event-driven game loop
+- Configurable parameters
+- Procedural world generation
+- AI opponents
+
+Future Plans:
+- Multiplayer mode
+- Random events
+- Trade agreements
+- Industrial espionage
+- Asymmetric tech trees

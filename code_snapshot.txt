@@ -1,0 +1,447 @@
+Directory Structure:
+project_root/
+├── main.py
+└── core/
+    └── __init__.py
+    └── config.py
+    └── player.py
+    └── factory.py
+    └── market.py
+    └── button.py
+    └── game.py
+    └── faction.py
+
+================================================================================
+
+File: main.py
+=============
+
+import pygame
+from core.game import Game
+
+if __name__ == "__main__":
+    pygame.init()
+    game = Game()
+    game.run()
+    pygame.quit()
+
+================================================================================
+
+File: core/__init__.py
+======================
+
+
+
+================================================================================
+
+File: core/config.py
+====================
+
+# Screen dimensions
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+FONT_SIZE = 20
+
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GRAY = (200, 200, 200)
+LIGHT_BLUE = (173, 216, 230)
+
+# Game constants
+MAX_TURNS = 10
+ACTIONS_PER_TURN = 3
+
+================================================================================
+
+File: core/player.py
+====================
+
+import random
+from core.factory import Factory
+from core.faction import FACTIONS
+
+class Player:
+    def __init__(self, name, faction_name):
+        self.name = name
+        self.faction = FACTIONS[faction_name]
+        self.money = 1000
+        self.loan = 0
+        self.factories = []
+        self.technologies = []
+        self.political_influence = 0
+        self.actions_left = 3
+        self.research_progress = 0
+
+        self.initialize_faction_benefits()
+
+    def initialize_faction_benefits(self):
+        if self.faction.name == "Political Machine":
+            self.money = 750
+            self.political_influence = 20
+            self.factories = [Factory("raw", 4), Factory("manufactured", 2)]
+        elif self.faction.name == "Technologist":
+            self.money = 1200
+            self.factories = [Factory("raw", 6, efficiency=1.2, labor_cost=8), Factory("manufactured", 4, efficiency=1.2, labor_cost=8)]
+        elif self.faction.name == "Monopolist":
+            self.factories = [Factory("raw", 8, labor_cost=8), Factory("manufactured", 5, labor_cost=8)]
+
+    def get_bribery_cost(self, base_cost):
+        return base_cost * self.faction.bribery_cost_multiplier
+
+    def get_research_cost(self, base_cost):
+        return base_cost * self.faction.research_cost_multiplier
+
+    def get_market_power(self):
+        return self.faction.market_power
+
+    def advance_research(self, amount):
+        self.research_progress += amount * self.faction.research_speed_multiplier
+
+    def check_for_scandal(self):
+        return random.random() < self.faction.scandal_chance
+
+    def is_espionage_successful(self):
+        return random.random() < self.faction.espionage_vulnerability * 0.1
+
+    def can_buyout_factory(self, target_factory):
+        return (self.faction.buyout_power * self.money) > (target_factory.value * 1.5)
+
+================================================================================
+
+File: core/factory.py
+=====================
+
+class Factory:
+    def __init__(self, product_type, production_capacity, efficiency=1.0, labor_cost=10):
+        self.product_type = product_type
+        self.production_capacity = production_capacity
+        self.efficiency = 1.0
+        self.labor_cost = 10
+        self.fixed_cost = 50
+        self.level = 1
+
+    def upgrade(self):
+        self.level += 1
+        self.production_capacity += 2
+        self.efficiency += 0.1
+
+    def upgrade_cost(self):
+        return self.level * 100
+
+================================================================================
+
+File: core/market.py
+====================
+
+class Market:
+    def __init__(self):
+        self.prices = {
+            "raw": 10,
+            "manufactured": 20,
+            "luxury": 30
+        }
+        self.demand = {
+            "raw": 5,
+            "manufactured": 3,
+            "luxury": 1
+        }
+
+================================================================================
+
+File: core/button.py
+====================
+
+import pygame
+from core.config import LIGHT_BLUE, BLACK
+
+class Button:
+    def __init__(self, x, y, width, height, text, action):
+        self.rect = pygame.Rect(x, y, width, height)
+        self.text = text
+        self.action = action
+
+    def draw(self, screen, font):
+        pygame.draw.rect(screen, LIGHT_BLUE, self.rect)
+        pygame.draw.rect(screen, BLACK, self.rect, 2)
+        text_surface = font.render(self.text, True, BLACK)
+        text_rect = text_surface.get_rect(center=self.rect.center)
+        screen.blit(text_surface, text_rect)
+
+================================================================================
+
+File: core/game.py
+==================
+
+import pygame
+import random
+from core.config import *
+from core.player import Player
+from core.market import Market
+from core.button import Button
+from core.faction import FACTIONS
+
+class Game:
+    def __init__(self):
+        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        pygame.display.set_caption("Economic Strategy Demo")
+        self.font = pygame.font.Font(None, FONT_SIZE)
+        self.clock = pygame.time.Clock()
+
+        self.players = []
+        self.current_player = 0
+        self.market = Market()
+        self.turn = 1
+        self.viewing_factories = False
+        self.selected_factory = None
+        self.max_turns = 10
+        
+        self.main_buttons = [
+            Button(50, 400, 150, 50, "Produce", self.produce),
+            Button(220, 400, 150, 50, "Research", self.research),
+            Button(390, 400, 150, 50, "Politics", self.influence_politics),
+            Button(560, 400, 150, 50, "View Factories", self.toggle_factory_view),
+            Button(50, 470, 150, 50, "End Turn", self.end_turn),
+            Button(220, 470, 150, 50, "Faction Info", self.toggle_faction_benefits)
+        ]
+
+        self.factory_buttons = [
+            Button(560, 400, 150, 50, "Back", self.toggle_factory_view),
+            Button(560, 470, 150, 50, "Upgrade", self.upgrade_factory)
+        ]
+
+        self.faction_selection_done = False
+        self.viewing_faction_benefits = False
+        self.faction_buttons = [
+            Button(50, 200 + i * 70, 300, 50, faction, self.select_faction)
+            for i, faction in enumerate(FACTIONS.keys())
+        ]    
+    
+    def draw_game_state(self):
+        self.screen.fill(WHITE)
+        
+        player = self.players[self.current_player]
+        info_text = [
+            f"Turn {self.turn}/{self.max_turns} - {player.name}'s Turn",
+            f"Money: ${player.money} (Loan: ${player.loan})",
+            f"Political Influence: {player.political_influence}",
+            "",
+            "Market Prices:",
+            f"Raw: ${self.market.prices['raw']} (Demand: {self.market.demand['raw']})",
+            f"Manufactured: ${self.market.prices['manufactured']} (Demand: {self.market.demand['manufactured']})",
+            f"Luxury: ${self.market.prices['luxury']} (Demand: {self.market.demand['luxury']})"
+        ]
+        for i, text in enumerate(info_text):
+            text_surface = self.font.render(text, True, BLACK)
+            self.screen.blit(text_surface, (50, 50 + i*30))
+
+        if self.viewing_factories:
+            self.draw_factory_view()
+        else:
+            for button in self.main_buttons:
+                button.draw(self.screen, self.font)
+
+    def draw_factory_view(self):
+        player = self.players[self.current_player]
+        for i, factory in enumerate(player.factories):
+            y_pos = 50 + i * 100
+            pygame.draw.rect(self.screen, GRAY, (50, y_pos, 500, 80))
+            info_text = [
+                f"Factory {i+1}: {factory.product_type.capitalize()}",
+                f"Production: {factory.production_capacity} (Efficiency: {factory.efficiency:.1f})",
+                f"Level: {factory.level} (Upgrade Cost: ${factory.upgrade_cost()})"
+            ]
+            for j, text in enumerate(info_text):
+                text_surface = self.font.render(text, True, BLACK)
+                self.screen.blit(text_surface, (60, y_pos + 10 + j*25))
+
+            select_button = Button(560, y_pos, 150, 80, "Select", lambda f=factory: self.select_factory(f))
+            select_button.draw(self.screen, self.font)
+
+        for button in self.factory_buttons:
+            button.draw(self.screen, self.font)
+
+    def produce(self):
+        player = self.players[self.current_player]
+        if player.actions_left > 0:
+            for factory in player.factories:
+                production_cost = factory.labor_cost + factory.fixed_cost
+                player.money -= production_cost
+                production = factory.production_capacity * factory.efficiency
+                revenue = self.market.prices[factory.product_type] * production
+                player.money += revenue
+            player.actions_left -= 1
+
+    def research(self):
+        player = self.players[self.current_player]
+        if player.actions_left > 0 and len(player.technologies) < 3:
+            tech_cost = 100
+            if player.money >= tech_cost:
+                player.money -= tech_cost
+                player.technologies.append(random.choice(["Efficiency", "Marketing", "Innovation"]))
+                player.actions_left -= 1
+
+    def influence_politics(self):
+        player = self.players[self.current_player]
+        if player.actions_left > 0 and player.political_influence < 50:
+            bribe_cost = 50
+            if player.money >= bribe_cost:
+                player.money -= bribe_cost
+                player.political_influence += 10
+                player.actions_left -= 1
+
+    def toggle_factory_view(self):
+        self.viewing_factories = not self.viewing_factories
+        self.selected_factory = None
+
+    def select_factory(self, factory):
+        self.selected_factory = factory
+
+    def upgrade_factory(self):
+        if self.selected_factory:
+            player = self.players[self.current_player]
+            if player.actions_left > 0:
+                upgrade_cost = self.selected_factory.upgrade_cost()
+                if player.money >= upgrade_cost:
+                    player.money -= upgrade_cost
+                    self.selected_factory.upgrade()
+                    player.actions_left -= 1
+
+    def end_turn(self):
+        self.current_player = 1 - self.current_player
+        self.players[self.current_player].actions_left = ACTIONS_PER_TURN
+        self.turn += 1
+        if self.turn > MAX_TURNS:
+            self.game_over()
+
+    def game_over(self):
+        winner = max(self.players, key=lambda p: p.money + p.political_influence)
+        print(f"Game Over! {winner.name} wins with ${winner.money} and {winner.political_influence} political influence.")
+
+    def select_faction(self, faction_name):
+        if len(self.players) < 2:
+            self.players.append(Player(f"Player {len(self.players) + 1}", faction_name))
+            if len(self.players) == 2:
+                self.faction_selection_done = True
+                self.current_player = 0
+
+    def draw_faction_selection(self):
+        self.screen.fill(WHITE)
+        title = self.font.render(f"Select Faction for Player {len(self.players) + 1}", True, BLACK)
+        self.screen.blit(title, (50, 50))
+        
+        for button in self.faction_buttons:
+            button.draw(self.screen, self.font)
+
+    def draw_faction_benefits(self):
+        self.screen.fill(WHITE)
+        player = self.players[self.current_player]
+        title = self.font.render(f"{player.name}'s Faction: {player.faction.name}", True, BLACK)
+        self.screen.blit(title, (50, 50))
+        
+        description = self.font.render(player.faction.description, True, BLACK)
+        self.screen.blit(description, (50, 100))
+        
+        for i, benefit in enumerate(player.faction.benefits):
+            text = self.font.render(f"• {benefit}", True, BLACK)
+            self.screen.blit(text, (50, 150 + i * 30))
+        
+        back_button = Button(50, 500, 150, 50, "Back", self.toggle_faction_benefits)
+        back_button.draw(self.screen, self.font)
+
+    def toggle_faction_benefits(self):
+        self.viewing_faction_benefits = not self.viewing_faction_benefits
+
+    def run(self):
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    return
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if not self.faction_selection_done:
+                        for button in self.faction_buttons:
+                            if button.rect.collidepoint(event.pos):
+                                button.action(button.text)
+                    elif self.viewing_faction_benefits:
+                        back_button = Button(50, 500, 150, 50, "Back", self.toggle_faction_benefits)
+                        if back_button.rect.collidepoint(event.pos):
+                            self.toggle_faction_benefits()
+                    else:
+                        for button in self.main_buttons:
+                                if button.rect.collidepoint(event.pos):
+                                    button.action()
+
+            if not self.faction_selection_done:
+                self.draw_faction_selection()
+            elif self.viewing_faction_benefits:
+                self.draw_faction_benefits()
+            else:
+                self.draw_game_state()
+
+            pygame.display.flip()
+            self.clock.tick(60)
+
+================================================================================
+
+File: core/faction.py
+=====================
+
+class Faction:
+    def __init__(self, name, description, benefits, bribery_cost_multiplier=1.0, 
+                 research_cost_multiplier=1.0, market_power=1.0, research_speed_multiplier=1.0,
+                 scandal_chance=0.0, espionage_vulnerability=1.0, buyout_power=1.0):
+        self.name = name
+        self.description = description
+        self.benefits = benefits
+        self.bribery_cost_multiplier = bribery_cost_multiplier
+        self.research_cost_multiplier = research_cost_multiplier
+        self.market_power = market_power
+        self.research_speed_multiplier = research_speed_multiplier
+        self.scandal_chance = scandal_chance
+        self.espionage_vulnerability = espionage_vulnerability
+        self.buyout_power = buyout_power
+
+FACTIONS = {
+    "Political Machine": Faction(
+        "Political Machine",
+        "Masters of political influence and manipulation.",
+        [
+            "Start with more political power",
+            "Cheaper briberies",
+            "Can influence market prices",
+            "Risk of political scandals"
+        ],
+        bribery_cost_multiplier=0.7,
+        market_power=1.1,
+        scandal_chance=0.1
+    ),
+    "Technologist": Faction(
+        "Technologist",
+        "Leaders in technological innovation and efficiency.",
+        [
+            "Start with more efficient factories",
+            "Cheaper and faster research",
+            "Lower variable costs",
+            "Vulnerable to industrial espionage"
+        ],
+        research_cost_multiplier=0.7,
+        research_speed_multiplier=1.5,
+        espionage_vulnerability=1.5
+    ),
+    "Monopolist": Faction(
+        "Monopolist",
+        "Dominant market force with significant economic power.",
+        [
+            "Start with larger factories",
+            "More market power",
+            "Can buy out smaller factories",
+            "Risk of antitrust investigations"
+        ],
+        market_power=1.3,
+        buyout_power=1.5
+    )
+}
+
+================================================================================
+
